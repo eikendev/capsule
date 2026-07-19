@@ -1,0 +1,17 @@
+# The workspace/data dir normally lives under $XDG_DATA_HOME, but ignore it in
+# case anyone points CAPSULE_DIR at a path inside the repo.
+/capsule/
+/.opencode-data/
+
+# Local secrets / env overrides. The token belongs in podman's secret store,
+# never in the repo, but guard against stray files anyway.
+*.env
+auth.json
+*.key
+*.token
+
+# Editor / OS cruft
+.DS_Store
+*.swp
+.idea/
+.vscode/

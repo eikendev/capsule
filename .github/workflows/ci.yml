@@ -1,0 +1,26 @@
+name: Continuous Integration
+run-name: CI • ${{ github.event_name }} • ${{ github.ref_name }}
+
+on:
+  push:
+  pull_request:
+    branches: ["main"]
+  workflow_call:
+
+jobs:
+  build_and_test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Execute tests
+        run: make test
+
+      - name: Build image
+        run: make build
