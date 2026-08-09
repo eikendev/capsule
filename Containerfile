@@ -10,7 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl git ripgrep sudo unzip \
         python3 python3-pip python3-venv python-is-python3 \
         build-essential gdb strace ltrace jq \
+        nodejs npm \
     && rm -rf /var/lib/apt/lists/*
+
+# Claude Code CLI, installed globally as root (system tool, unlike the
+# per-user opencode install below).
+# hadolint ignore=DL3016
+RUN npm install -g @anthropic-ai/claude-code
 
 # rtk (Rust Token Killer) compresses command output to cut LLM token use.
 # Installed to /usr/local/bin (on PATH) as root so the opencode plugin can shell
@@ -36,19 +42,18 @@ RUN userdel -r ubuntu 2>/dev/null || true \
 RUN echo 'dev ALL=(root) NOPASSWD: /usr/bin/apt, /usr/bin/apt-get' > /etc/sudoers.d/dev \
  && chmod 0440 /etc/sudoers.d/dev
 
-# Pre-create every XDG dir opencode writes to, owned by dev. Otherwise podman
-# auto-creates the bind-mount's parent dirs (.local, .local/share) as container
-# root (an unwritable subuid under --userns=keep-id), and opencode fails with
-# EACCES trying to mkdir e.g. ~/.local/state.
-# All permissions granted: this is safe because the container is the sandbox
-# boundary.
+# Pre-create dirs opencode and Claude Code write to, owned by dev. Without
+# this, podman creates the bind-mount parents as container root, and the
+# tools fail with EACCES.
 RUN mkdir -p /home/dev/.config/opencode \
              /home/dev/.local/share/opencode \
              /home/dev/.local/state \
-             /home/dev/.cache
+             /home/dev/.cache \
+             /home/dev/.claude
 COPY opencode.json /home/dev/.config/opencode/opencode.json
 RUN chown -R "$UID:$GID" /home/dev
 
+# hadolint ignore=DL3066
 USER dev
 ENV HOME=/home/dev
 ENV PATH=/home/dev/.opencode/bin:$PATH

@@ -1,7 +1,7 @@
 <div align="center">
     <h1>capsule</h1>
     <h4 align="center">
-        A disposable <a href="https://podman.io/">podman</a> sandbox that drops you straight into <a href="https://opencode.ai/">opencode</a> with all permissions granted.
+        A disposable <a href="https://podman.io/">podman</a> sandbox that drops you straight into <a href="https://opencode.ai/">opencode</a> or <a href="https://docs.claude.com/en/docs/claude-code">Claude Code</a> with all permissions granted.
     </h4>
     <p>The container <em>is</em> the sandbox boundary, so the agent can run anything inside it without prompting, while your host stays untouched.</p>
 </div>
@@ -15,9 +15,11 @@
 
 ```sh
 make login    # paste your OpenRouter API key once (stored in podman's secret store)
-make          # build (first run) and drop into opencode
-make shell    # same sandbox, but a bash prompt instead of opencode
-make logout   # forget the stored key
+make          # build (first run) and drop into opencode (default)
+make opencode # same as above, explicit
+make claude   # build (first run) and drop into Claude Code instead
+make shell    # same sandbox, but a bash prompt with both agents' data mounted
+make logout   # forget the stored OpenRouter key
 make rebuild  # rebuild the image from scratch
 make clean    # remove the image + prune dangling images and build cache
 make prune    # just reclaim disk (dangling images + build cache), keep the image
@@ -25,6 +27,11 @@ make purge    # full reset: image, cache, token, AND your data dir
 make where    # print the mounted host directory
 make test     # lint Containerfile and Makefile
 ```
+
+Both targets run the same image; only the command launched inside it differs
+(`opencode` vs. `claude`). `make claude` needs no `make login` step — Claude
+Code authenticates interactively on first run instead (see
+[Authentication](#-authentication)).
 
 ## 🧹 Keeping podman disk usage down
 
@@ -37,18 +44,23 @@ That's normal podman hygiene, but worth knowing if you build other images too.
 
 ## 🔑 Authentication
 
-Auth is deliberately kept **separate from your files**. Your OpenRouter API key
-(from [openrouter.ai/keys](https://openrouter.ai/keys)) is stored once via
-`make login` into **podman's secret store**, not in this repo and not in the
-mounted workspace.
+Auth is deliberately kept **separate from your files**, and each agent
+authenticates its own way.
 
-At launch, podman mounts the key as a **tmpfs file** at
-`/run/secrets/capsule-openrouter-key`, and opencode reads it directly through the
-`{file:...}` reference in `opencode.json`. The key therefore lives only in
+**opencode** uses an OpenRouter API key (from
+[openrouter.ai/keys](https://openrouter.ai/keys)), stored once via `make
+login` into **podman's secret store**, not in this repo and not in the
+mounted workspace. At launch, podman mounts the key as a **tmpfs file** at
+`/run/secrets/capsule-openrouter-key`, and opencode reads it directly through
+the `{file:...}` reference in `opencode.json`. The key therefore lives only in
 podman's secret store and in container RAM; it is **never written to your
-persistent workspace or the image**.
+persistent workspace or the image**. To rotate the key, just `make login`
+again.
 
-To rotate the key, just `make login` again.
+**Claude Code** has no key to paste: run `make claude`, and on first use it
+walks you through its own interactive login (device-code flow against your
+Claude.ai or Console account). That session is persisted under
+`~/.claude` (see [Persistence](#-persistence)) so you only log in once.
 
 ## ⚡ Token savings (rtk)
 
@@ -72,13 +84,15 @@ sudo apt install <pkg>
 
 ## 💾 Persistence
 
-Everything else lives under one directory, with your workspace and opencode's
-own state kept as separate siblings:
+Everything else lives under one directory, with your workspace and each
+agent's own state kept as separate siblings:
 
 ```
 ${XDG_DATA_HOME:-~/.local/share}/capsule/
-├── work/            ->  /work                          (your workspace)
-└── .opencode-data/  ->  ~/.local/share/opencode (in-container)  (session history)
+├── work/            ->  /work                          (your workspace, shared by both agents)
+├── .opencode-data/  ->  ~/.local/share/opencode (in-container)  (opencode session history)
+├── .claude-data/    ->  ~/.claude (in-container)                (Claude Code session data)
+└── .claude.json     ->  ~/.claude.json (in-container)           (Claude Code config, incl. login)
 ```
 
 The image is disposable (`--rm`); this directory, plus the podman secret, is
@@ -88,10 +102,10 @@ what survives between runs. Override the location with
 ## 🥙 Preinstalled tooling
 
 Baked into the image: `git`, `ripgrep`, `curl`, `unzip`, **Python 3**
-(`python3`, `pip`, `venv`, with `python` aliased to `python3`), a C/C++
-toolchain (`build-essential`: gcc, g++, make), and debugging tools `gdb`,
-`strace`, `ltrace`, plus `jq` for JSON.
+(`python3`, `pip`, `venv`, with `python` aliased to `python3`), **Node.js**
+and `npm`, a C/C++ toolchain (`build-essential`: gcc, g++, make), and
+debugging tools `gdb`, `strace`, `ltrace`, plus `jq` for JSON.
 
 `strace`/`ltrace`/`gdb` need the `SYS_PTRACE` capability to attach to
-processes, which podman denies by default. `RUN_FLAGS` in the Makefile adds
-`--cap-add=SYS_PTRACE` to restore it.
+processes, which podman denies by default. `COMMON_FLAGS` in the Makefile
+adds `--cap-add=SYS_PTRACE` to restore it.
