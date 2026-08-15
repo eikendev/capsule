@@ -49,7 +49,7 @@ opencode: build require-secret | $(WORK_DIR) $(OPENCODE_DIR) ## Launch opencode 
 	podman run --name capsule $(OPENCODE_FLAGS) $(IMAGE)
 
 .PHONY: claude
-claude: build | $(WORK_DIR) $(CLAUDE_DIR) $(CLAUDE_JSON)     ## Launch Claude Code in the sandbox
+claude: build | $(WORK_DIR) $(CLAUDE_DIR) $(CLAUDE_JSON) $(CLAUDE_DIR)/settings.json ## Launch Claude Code in the sandbox
 	podman run --name capsule-claude $(CLAUDE_FLAGS) $(IMAGE) claude
 
 .PHONY: shell
@@ -113,6 +113,11 @@ $(WORK_DIR) $(OPENCODE_DIR) $(CLAUDE_DIR):
 $(CLAUDE_JSON):
 	@mkdir -p $(dir $@)
 	touch $@
+
+# Claude Code equivalent of opencode.json's "permission": "allow". Written
+# once; won't overwrite a hand-edited file.
+$(CLAUDE_DIR)/settings.json: | $(CLAUDE_DIR)
+	printf '{\n  "permissions": {\n    "defaultMode": "bypassPermissions"\n  }\n}\n' > $@
 
 .PHONY: help
 help:                             ## List targets

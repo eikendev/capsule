@@ -62,6 +62,11 @@ walks you through its own interactive login (device-code flow against your
 Claude.ai or Console account). That session is persisted under
 `~/.claude` (see [Persistence](#-persistence)) so you only log in once.
 
+Like opencode's `"permission": "allow"`, `make claude` sets
+`permissions.defaultMode: "bypassPermissions"` in `~/.claude/settings.json`
+to skip permission prompts. A one-time warning dialog on first run is saved
+to the same persisted `~/.claude`, so it won't repeat.
+
 ## ⚡ Token savings (rtk)
 
 The image bakes in [rtk](https://github.com/rtk-ai/rtk) ("Rust Token Killer"),
