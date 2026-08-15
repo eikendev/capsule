@@ -35,11 +35,18 @@ RUN userdel -r ubuntu 2>/dev/null || true \
  && groupadd -g "$GID" dev 2>/dev/null || true \
  && useradd -l -m -u "$UID" -g "$GID" -s /bin/bash dev
 
-# Passwordless sudo, restricted to apt only, which is enough for installing
-# packages without opening up full root. Safe regardless since the container
-# is the boundary. Note: anything installed this way is lost on exit (--rm);
-# for lasting tools, add them to this Containerfile instead.
-RUN echo 'dev ALL=(root) NOPASSWD: /usr/bin/apt, /usr/bin/apt-get' > /etc/sudoers.d/dev \
+# Passwordless sudo. Restricted to apt only by default, which is enough for
+# installing packages without opening up full root; set FULL_SUDO=1 (see
+# Makefile) to grant dev unrestricted root instead. Either way this is safe
+# since the container is the boundary. Note: anything installed via apt this
+# way is lost on exit (--rm); for lasting tools, add them to this Containerfile
+# instead.
+ARG FULL_SUDO=0
+RUN if [ "$FULL_SUDO" = "1" ]; then \
+        echo 'dev ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/dev; \
+    else \
+        echo 'dev ALL=(root) NOPASSWD: /usr/bin/apt, /usr/bin/apt-get' > /etc/sudoers.d/dev; \
+    fi \
  && chmod 0440 /etc/sudoers.d/dev
 
 # Pre-create dirs opencode and Claude Code write to, owned by dev. Without

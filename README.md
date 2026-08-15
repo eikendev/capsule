@@ -87,6 +87,18 @@ agent) can install tooling on the fly:
 sudo apt install <pkg>
 ```
 
+If you need more than apt (e.g. changing file ownership, mounting things,
+running other privileged commands), build with `FULL_SUDO=1` to grant `dev`
+unrestricted passwordless root instead:
+
+```sh
+make FULL_SUDO=1          # or: make claude FULL_SUDO=1, make rebuild FULL_SUDO=1
+```
+
+This is opt-in and off by default, but either way it's no more dangerous than
+the apt-only default: the container itself is the sandbox boundary, so root
+inside it still can't touch your host.
+
 ## 💾 Persistence
 
 Everything else lives under one directory, with your workspace and each

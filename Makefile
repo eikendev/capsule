@@ -10,6 +10,7 @@ CLAUDE_DIR    := $(CAPSULE_DIR)/.claude-data
 CLAUDE_JSON   := $(CAPSULE_DIR)/.claude.json
 UID           := $(shell id -u)
 GID           := $(shell id -g)
+FULL_SUDO     ?= 0
 
 # Flags shared by every agent.
 #   --userns=keep-id      map host UID into the container.
@@ -74,12 +75,12 @@ logout:                           ## Remove the stored OpenRouter API key
 	-podman secret rm $(SECRET)
 
 .PHONY: build
-build:                            ## Build the image
-	podman build --build-arg UID=$(UID) --build-arg GID=$(GID) -t $(IMAGE) .
+build:                            ## Build the image (FULL_SUDO=1 for unrestricted sudo)
+	podman build --build-arg UID=$(UID) --build-arg GID=$(GID) --build-arg FULL_SUDO=$(FULL_SUDO) -t $(IMAGE) .
 
 .PHONY: rebuild
-rebuild:                          ## Rebuild the image from scratch (no cache)
-	podman build --no-cache --build-arg UID=$(UID) --build-arg GID=$(GID) -t $(IMAGE) .
+rebuild:                          ## Rebuild the image from scratch (no cache; FULL_SUDO=1 for unrestricted sudo)
+	podman build --no-cache --build-arg UID=$(UID) --build-arg GID=$(GID) --build-arg FULL_SUDO=$(FULL_SUDO) -t $(IMAGE) .
 
 .PHONY: clean
 clean:                            ## Remove the capsule image, then prune dangling images + build cache
