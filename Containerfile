@@ -69,7 +69,7 @@ ENV PATH=/home/dev/.opencode/bin:$PATH
 # globally (installs the tool.execute.before plugin and RTK.md instructions
 # under ~/.config/opencode; --auto-patch = non-interactive). Chained into one
 # RUN since the second step depends on the first having completed anyway.
-RUN bash -c 'set -o pipefail && curl -fsSL https://opencode.ai/install | bash' \
+RUN bash -c 'set -o pipefail && curl -fsSL https://opencode.ai/v2/install | bash' \
  && rtk init -g --opencode --auto-patch
 
 WORKDIR /work
